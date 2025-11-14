@@ -20,4 +20,5 @@ async def getPkgInfo(request: Request, name):
 async def getPkgArchieve():
 	pass
 
+@global_router.post('/add-package')
 
