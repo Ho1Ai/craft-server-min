@@ -16,13 +16,17 @@ global_router = APIRouter(prefix='/api')
 async def getPkgInfo(request: Request, name):
 	#print(name)
 	data = await pkgInfo.pkgsInfo(name)
+	#print(data['version'], data["existence"])
 	return {"is_ok": True,
 			"status_code": 0,
-			"pkg_name": data}
+			"existence": data.get("existence"),
+			"version": data.get("version")
+			}
 
 
 @global_router.get('/pkg-get')
-async def getPkgArchieve(pkg_name: str):
+async def getPkgArchieve(request: Request):
+	pkg_name = request.headers["pkg_name"]
 	pkg_server_name_getter = await pkgGet.getPkgPath(pkg_name)
 
 	if pkg_server_name_getter["existence"]:

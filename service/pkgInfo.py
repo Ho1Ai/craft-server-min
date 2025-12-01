@@ -9,7 +9,7 @@ async def pkgsInfo(pkg_name):
 	conn = await pool.acquire()
 
 	#print(pkg_name)
-	package_info_constructor = {"existence": False, "name": None, "version": None}
+	package_info_constructor = {"existence": False, "name": None, "version": "undefined"}
 
 	pkg_info_raw = await conn.fetchrow("select * from packages_list where name = $1", pkg_name)
 	#print(pkg_info_raw)
