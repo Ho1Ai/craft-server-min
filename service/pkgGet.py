@@ -6,7 +6,8 @@ async def getPkgPath(pkg_name):
 	
 	package_name_getter_constructor = {
 		"existence": False,
-		"server_name": None
+		"server_name": None,
+		"version": None
 		}
 
 	row = await conn.fetchrow("select * from packages_list where name = $1", pkg_name)
@@ -14,6 +15,7 @@ async def getPkgPath(pkg_name):
 	if row:
 		package_name_getter_constructor["existence"] = True
 		package_name_getter_constructor["server_name"] = row["server_name"]
+		package_name_getter_constructor["version"] = row["version"]
 	await conn.close()
 	await pool.close()
 

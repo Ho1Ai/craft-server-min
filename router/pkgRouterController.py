@@ -32,7 +32,7 @@ async def getPkgArchieve(request: Request):
 	if pkg_server_name_getter["existence"]:
 		if os.path.exists("./pkg_dir/" + pkg_server_name_getter['server_name']):
 			new_file = "./pkg_dir/"+pkg_server_name_getter['server_name']
-			return FileResponse(new_file)
+			return FileResponse(new_file, headers={"App-Pkg-Version": pkg_server_name_getter["version"]})
 		else:
 			return {"is_ok": False, "status_code": 11}
 	else:
