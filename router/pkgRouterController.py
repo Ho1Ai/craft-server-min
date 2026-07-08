@@ -1,5 +1,5 @@
 #libs
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, File, UploadFile, Body
 from fastapi.responses import FileResponse
 import os
 
@@ -8,12 +8,14 @@ import service.pkgInfo as pkgInfo
 import service.pkgPost as pkgPost
 import service.pkgGet as pkgGet
 import service.pkgPut as pkgPut
+
 from models import default_models as models
+from service import pkgCountHash
 
 global_router = APIRouter(prefix='/api')
 
 @global_router.get('/pkg-info')
-async def getPkgInfo(request: Request, name):
+async def getPkgSingleInfo(request: Request, name):
 	#print(name)
 	data = await pkgInfo.pkgsInfo(name)
 	#print(data['version'], data["existence"])
@@ -38,21 +40,53 @@ async def getPkgArchieve(request: Request):
 	else:
 		return {"is_ok": False, "status_code": 11}
 
+@global_router.post('/pkg-post-test')
+async def test_post (package_file: UploadFile = File(...)):
+    contents = await package_file.read()
+
+    # pkg_count_hash = pkgCountHash.countFileHash(contents)
+
+    print(len(contents))
+
 @global_router.post('/add-package')
-async def createPackage(new_pkg_creation_instance: models.CreationModel):
-	status = await pkgPost.createPackage(new_pkg_creation_instance.pkg_name,
-	new_pkg_creation_instance.pkg_version,
-	new_pkg_creation_instance.pkg_dependencies,
-	new_pkg_creation_instance.pkg_maintainer,
-	new_pkg_creation_instance.pkg_description,
-	new_pkg_creation_instance.pkg_server_name)
-	return status
+async def createPackage(new_pkg_creation_instance: models.CreationModel = Body(...), package_file: UploadFile = File(...)):
+    hashed_pkg_update_key = pkgCountHash.pkgHexifier(new_pkg_creation_instance.pkg_update_key)
+    new_pkg_name = new_pkg_creation_instance.pkg_name.lower().replace(" ", "-")
 
-@global_router.put("/update-package-info")
-async def updatePkgInfo():
-	pass
+    new_pkg_server_path = new_pkg_creation_instance.pkg_name.lower()+'-'+new_pkg_creation_instance.pkg_version.lower()
 
-@global_router.put("/update-downloads")
-async def updateDownloads(pkg_name: str):
-	await pkgPut.updateDownloads(pkg_name)
-	return {"is_ok": True}
+    contents = await package_file.read()
+    with open(new_pkg_server_path, 'wb') as f:
+        f.write(contents)
+
+    pkg_count_hash = pkgCountHash.countFileHash(contents)
+
+    print(pkg_count_hash, len(contents), hashed_pkg_update_key, new_pkg_server_path)
+
+    status = await pkgPost.createPackage(pkg_name=new_pkg_name,
+	    pkg_version=new_pkg_creation_instance.pkg_version,
+	    pkg_dependencies=new_pkg_creation_instance.pkg_dependencies,
+	    pkg_maintainer=new_pkg_creation_instance.pkg_maintainer,
+	    pkg_server_path=new_pkg_server_path,
+	    pkg_update_key=hashed_pkg_update_key,
+        pkg_hash=pkg_count_hash,
+        pkg_size=len(contents))
+    return status
+
+@global_router.post("/request-pkg-add")
+async def requestPkgAdd(request: models.RequestPkgAdd):
+    result = {"is_ok": True, "status_code": 0}
+    return result
+
+@global_router.post('/get-pkg-data')
+async def getPkgData(pkg_list: models.RequestList):
+    full_dependencies_list = await pkgGet.resolveFullDependenciesList(pkg_list.package_list)
+    result = {"packages": [
+        {
+            "name": "test",
+            "version": "0.0.1",
+            "pkg_size": 0,
+            "pkg_hash": ""
+        }
+    ]}
+    return result
