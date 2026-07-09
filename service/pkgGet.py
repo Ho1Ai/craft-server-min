@@ -23,16 +23,19 @@ async def getPkgPath(pkg_name):
 	return package_name_getter_constructor 
 
 async def resolveFullDependenciesList(pkg_name):
+    print(pkg_name)
     pool = await db.dbConnectionOpen()
     conn = await pool.acquire()
 
-    result_id = await conn.fetch("select dependencies from packages_list where name = $1", pkg_name)
+    result_id = await conn.fetchrow("select * from packages_list where name = $1", pkg_name)
+
+    result_id = result_id["dependencies"]
 
     result = []
+    for dependency in result_id:
+        elem_name = await conn.fetchrow("select * from packages_list where id = $1", dependency)
 
-    for id in result_id:
-        new_obj = await conn.fetch("select name from packages_list where id = $1", id)
-        result.append(new_obj)
+        result.append(elem_name)
 
     await conn.close()
     await pool.close()

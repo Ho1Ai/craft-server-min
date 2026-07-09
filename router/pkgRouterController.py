@@ -27,8 +27,8 @@ global_router = APIRouter(prefix='/api')
 #
 
 @global_router.get('/check-pkg-existence')
-async def checkPkgExistence(request: Request):
-    result = await pkgGet.checkPkgExistence(request)
+async def checkPkgExistence(name: str):
+    result = await pkgGet.checkPkgExistence(name)
     return {"existence": result}
 
 @global_router.get('/pkg-get')
@@ -37,11 +37,11 @@ async def getPkgArchieve(request: Request):
     pkg_server_name_getter = await pkgGet.getPkgPath(pkg_name)
 
     if pkg_server_name_getter["existence"]:
+        print(pkg_server_name_getter)
         if os.path.exists(pkg_server_name_getter['server_name']):
-            pkg_len = os.path.getsize(pkg_server_name_getter.get['server_name'])
             pkg_hash = pkgCountHash.countFileHash(pkg_server_name_getter['server_name'])
             new_file = pkg_server_name_getter['server_name']
-            return FileResponse(new_file, headers={"App-Pkg-Version": pkg_server_name_getter["version"], "App-Pkg-Size": pkg_len, "App-Pkg-Hash": pkg_hash})
+            return FileResponse(new_file, headers={"App-Pkg-Version": pkg_server_name_getter["version"], "App-Pkg-Hash": pkg_hash})
         else:
             return {"is_ok": False, "status_code": 11}
     else:
@@ -86,9 +86,12 @@ async def requestPkgAdd(request: models.RequestPkgAdd):
     return result
 
 @global_router.get("/get-pkg-dependencies")
-async def getPkgDependencies(name: str):
-    result = pkgGet.resolveFullDependenciesList(name)
-    return {"dependencies": result}
+async def getPkgDependencies(request: Request):
+    print(request.headers)
+    print(request.headers["pkg_name"])
+    result_ids = await pkgGet.resolveFullDependenciesList(request.headers["pkg_name"])
+
+    return {"packages": result_ids}
 
 @global_router.post('/get-pkg-data')
 async def getPkgData(pkg_list: models.RequestList):
